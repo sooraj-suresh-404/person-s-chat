@@ -2,6 +2,42 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer base {
+  body {
+    @apply antialiased text-gray-900;
+  }
+}
+
+@layer components {
+  .message-bubble {
+    @apply relative max-w-[70%] mb-4 break-words;
+  }
+
+  .message-bubble-user {
+    @apply ml-auto bg-[#dcf8c6] rounded-lg rounded-tr-none;
+  }
+
+  .message-bubble-ai {
+    @apply mr-auto bg-white rounded-lg rounded-tl-none;
+  }
+
+  .chat-input {
+    @apply w-full px-4 py-2 bg-white rounded-full border-none focus:outline-none focus:ring-2 focus:ring-green-500 shadow-sm transition-shadow;
+  }
+
+  .sidebar-button {
+    @apply p-2 hover:bg-gray-200 rounded-full transition-colors duration-200 text-gray-600 hover:text-gray-900;
+  }
+
+  .personality-card {
+    @apply flex items-center gap-3 p-3 hover:bg-gray-100 cursor-pointer transition-all duration-200 border-l-4 border-transparent;
+  }
+
+  .personality-card-active {
+    @apply bg-gray-100 border-l-4 border-green-500;
+  }
+}
+
 @keyframes fade-in {
   from {
     opacity: 0;
@@ -13,8 +49,26 @@
   }
 }
 
+@keyframes typing {
+  0% { transform: translateY(0px); }
+  28% { transform: translateY(-3px); }
+  44% { transform: translateY(0px); }
+}
+
 .animate-fade-in {
   animation: fade-in 0.3s ease-out;
+}
+
+.typing-indicator div {
+  animation: typing 1.4s infinite;
+}
+
+.typing-indicator div:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.typing-indicator div:nth-child(3) {
+  animation-delay: 0.4s;
 }
 
 /* Custom scrollbar */
@@ -33,4 +87,13 @@
 
 ::-webkit-scrollbar-thumb:hover {
   background: #666;
+}
+
+/* Message time tooltip */
+.message-time {
+  @apply opacity-0 transition-opacity duration-200 absolute -bottom-6 text-xs text-gray-500;
+}
+
+.message-bubble:hover .message-time {
+  @apply opacity-100;
 }

@@ -12,6 +12,7 @@ export default function ChatWindow({ personality }: ChatWindowProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -20,6 +21,12 @@ export default function ChatWindow({ personality }: ChatWindowProps) {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  useEffect(() => {
+    if (personality) {
+      setMessages([]);
+    }
+  }, [personality]);
 
   const handleSend = async () => {
     if (!message.trim() || !personality) return;
@@ -31,7 +38,7 @@ export default function ChatWindow({ personality }: ChatWindowProps) {
       timestamp: new Date(),
     };
 
-    setMessages([...messages, newMessage]);
+    setMessages((prev) => [...prev, newMessage]);
     setMessage('');
     setIsTyping(true);
 
@@ -46,7 +53,7 @@ export default function ChatWindow({ personality }: ChatWindowProps) {
       setIsTyping(false);
       setMessages((prev) => [...prev, responseMessage]);
     } catch (error) {
-      console.error('Error getting AI response:', error);
+      console.error('Error generating response:', error);
       setIsTyping(false);
       setMessages((prev) => [
         ...prev,
@@ -63,7 +70,10 @@ export default function ChatWindow({ personality }: ChatWindowProps) {
   if (!personality) {
     return (
       <div className="flex-1 bg-gray-100 flex items-center justify-center">
-        <p className="text-gray-500">Select a personality to start chatting</p>
+        <div className="text-center">
+          <h2 className="text-2xl font-semibold text-gray-700 mb-2">Welcome to AI Chat</h2>
+          <p className="text-gray-500">Select a personality from the sidebar to start chatting</p>
+        </div>
       </div>
     );
   }
@@ -71,28 +81,31 @@ export default function ChatWindow({ personality }: ChatWindowProps) {
   return (
     <div className="flex-1 flex flex-col bg-[#efeae2]">
       {/* Chat header */}
-      <div className="h-16 bg-gray-100 flex items-center justify-between px-4 border-b shadow-sm">
+      <div className="h-16 bg-white flex items-center justify-between px-4 border-b shadow-sm">
         <div className="flex items-center gap-3">
-          <img
-            src={personality.avatar}
-            alt={personality.name}
-            className="w-10 h-10 rounded-full object-cover"
-          />
+          <div className="relative">
+            <img
+              src={personality.avatar}
+              alt={personality.name}
+              className="w-10 h-10 rounded-full object-cover"
+            />
+            <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
+          </div>
           <div>
             <h3 className="font-semibold">{personality.name}</h3>
             <p className="text-xs text-gray-500">
-              {isTyping ? 'typing...' : personality.description}
+              {isTyping ? 'typing...' : 'online'}
             </p>
           </div>
         </div>
         <div className="flex items-center gap-4">
-          <button className="p-2 hover:bg-gray-200 rounded-full transition-colors">
+          <button className="sidebar-button">
             <Video size={20} />
           </button>
-          <button className="p-2 hover:bg-gray-200 rounded-full transition-colors">
+          <button className="sidebar-button">
             <Phone size={20} />
           </button>
-          <button className="p-2 hover:bg-gray-200 rounded-full transition-colors">
+          <button className="sidebar-button">
             <MoreVertical size={20} />
           </button>
         </div>
@@ -103,34 +116,28 @@ export default function ChatWindow({ personality }: ChatWindowProps) {
         {messages.map((msg) => (
           <div
             key={msg.id}
-            className={`max-w-[70%] mb-4 ${
-              msg.sender === 'user' ? 'ml-auto' : 'mr-auto'
+            className={`message-bubble ${
+              msg.sender === 'user' ? 'message-bubble-user' : 'message-bubble-ai'
             }`}
           >
-            <div
-              className={`p-3 rounded-lg shadow-sm animate-fade-in ${
-                msg.sender === 'user'
-                  ? 'bg-[#dcf8c6] rounded-tr-none'
-                  : 'bg-white rounded-tl-none'
-              }`}
-            >
-              <p className="break-words">{msg.content}</p>
-              <p className="text-xs text-gray-500 text-right mt-1">
+            <div className="p-3 shadow-sm animate-fade-in">
+              <p>{msg.content}</p>
+              <span className="message-time">
                 {msg.timestamp.toLocaleTimeString([], {
                   hour: '2-digit',
                   minute: '2-digit',
                 })}
-              </p>
+              </span>
             </div>
           </div>
         ))}
         {isTyping && (
-          <div className="max-w-[70%] mr-auto mb-4">
-            <div className="bg-white p-3 rounded-lg rounded-tl-none shadow-sm animate-pulse">
-              <div className="flex gap-2">
-                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-100"></div>
-                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-200"></div>
+          <div className="message-bubble message-bubble-ai">
+            <div className="bg-white p-3 rounded-lg rounded-tl-none shadow-sm">
+              <div className="typing-indicator flex gap-2">
+                <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
+                <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
+                <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
               </div>
             </div>
           </div>
@@ -141,24 +148,26 @@ export default function ChatWindow({ personality }: ChatWindowProps) {
       {/* Input area */}
       <div className="bg-gray-100 p-4">
         <div className="flex items-center gap-2">
-          <button className="p-2 hover:bg-gray-200 rounded-full transition-colors">
-            <Smile size={20} className="text-gray-500" />
+          <button className="sidebar-button">
+            <Smile size={20} />
           </button>
-          <button className="p-2 hover:bg-gray-200 rounded-full transition-colors">
-            <Image size={20} className="text-gray-500" />
+          <button className="sidebar-button">
+            <Image size={20} />
           </button>
           <input
+            ref={inputRef}
             type="text"
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-            placeholder="Type a message"
-            className="flex-1 px-4 py-2 rounded-full border-none focus:outline-none shadow-sm"
+            placeholder={`Message ${personality.name}...`}
+            className="chat-input"
+            autoFocus
           />
           <button
             onClick={handleSend}
             disabled={!message.trim()}
-            className="p-2 bg-green-500 hover:bg-green-600 rounded-full text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="p-2 bg-green-500 hover:bg-green-600 rounded-full text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-green-500"
           >
             <Send size={20} />
           </button>
