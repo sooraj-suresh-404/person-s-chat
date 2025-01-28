@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, MoreVertical, Phone, Video, Image, Smile } from 'lucide-react';
+import { Send, MoreVertical, Phone, Video, Image, Smile, Paperclip, Mic, Bot, Link2 } from 'lucide-react';
 import { AIPersonality, Message } from '../types';
 import { generateResponse } from '../services/ai';
 
@@ -11,8 +11,33 @@ export default function ChatWindow({ personality }: ChatWindowProps) {
   const [message, setMessage] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
   const [isTyping, setIsTyping] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    return document.documentElement.classList.contains('dark');
+  });
+
+  // Listen for dark mode changes
+  useEffect(() => {
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.attributeName === 'class') {
+          setIsDarkMode(document.documentElement.classList.contains('dark'));
+        }
+      });
+    });
+
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class'],
+    });
+
+    return () => observer.disconnect();
+  }, []);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -25,8 +50,39 @@ export default function ChatWindow({ personality }: ChatWindowProps) {
   useEffect(() => {
     if (personality) {
       setMessages([]);
+      inputRef.current?.focus();
     }
   }, [personality]);
+
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setSelectedFile(file);
+      // Add file preview message
+      const newMessage: Message = {
+        id: Date.now().toString(),
+        content: `Uploaded file: ${file.name}`,
+        sender: 'user',
+        timestamp: new Date(),
+        attachment: {
+          type: file.type.startsWith('image/') ? 'image' : 'file',
+          url: URL.createObjectURL(file),
+          name: file.name
+        }
+      };
+      setMessages(prev => [...prev, newMessage]);
+    }
+  };
+
+  const startRecording = () => {
+    setIsRecording(true);
+    // Implement voice recording logic
+  };
+
+  const stopRecording = () => {
+    setIsRecording(false);
+    // Implement voice recording stop logic
+  };
 
   const handleSend = async () => {
     if (!message.trim() || !personality) return;
@@ -69,108 +125,199 @@ export default function ChatWindow({ personality }: ChatWindowProps) {
 
   if (!personality) {
     return (
-      <div className="flex-1 bg-gray-100 flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-2xl font-semibold text-gray-700 mb-2">Welcome to AI Chat</h2>
-          <p className="text-gray-500">Select a personality from the sidebar to start chatting</p>
+      <div className={`flex-1 flex items-center justify-center ${
+        isDarkMode ? 'bg-gray-900' : 'bg-gradient-to-br from-green-50 to-blue-50'
+      }`}>
+        <div className="text-center max-w-lg px-4">
+          <Bot size={48} className="mx-auto mb-6 text-green-500" />
+          <h2 className={`text-3xl font-bold mb-4 ${
+            isDarkMode ? 'text-gray-200' : 'text-gray-800'
+          }`}>Welcome to AI Chat</h2>
+          <p className={`text-lg ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+            Choose an AI personality from the sidebar to start an intelligent conversation
+          </p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="flex-1 flex flex-col bg-[#efeae2]">
+    <div className={`flex-1 flex flex-col ${
+      isDarkMode ? 'bg-gray-900' : 'bg-gradient-to-br from-green-50 to-blue-50'
+    }`}>
       {/* Chat header */}
-      <div className="h-16 bg-white flex items-center justify-between px-4 border-b shadow-sm">
-        <div className="flex items-center gap-3">
+      <div className={`h-20 flex items-center justify-between px-6 border-b backdrop-blur-lg bg-opacity-90 ${
+        isDarkMode ? 'bg-gray-900/90 border-gray-700' : 'bg-white/90 border-gray-200'
+      }`}>
+        <div className="flex items-center gap-4">
           <div className="relative">
-            <img
-              src={personality.avatar}
-              alt={personality.name}
-              className="w-10 h-10 rounded-full object-cover"
-            />
-            <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
+            <div className="relative w-12 h-12 rounded-full overflow-hidden ring-2 ring-green-500">
+              <img
+                src={personality.avatar}
+                alt={personality.name}
+                className="w-full h-full object-cover"
+              />
+            </div>
+            <div className="absolute bottom-0 right-0 w-4 h-4 bg-green-500 rounded-full border-2 border-white dark:border-gray-900 ring-2 ring-white dark:ring-gray-900"></div>
           </div>
           <div>
-            <h3 className="font-semibold">{personality.name}</h3>
-            <p className="text-xs text-gray-500">
-              {isTyping ? 'typing...' : 'online'}
-            </p>
+            <h3 className={`text-lg font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+              {personality.name}
+            </h3>
+            <div className="flex items-center gap-2">
+              <span className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                {isTyping ? 'typing...' : 'AI Assistant'}
+              </span>
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                Active
+              </span>
+            </div>
           </div>
         </div>
-        <div className="flex items-center gap-4">
-          <button className="sidebar-button">
+        <div className="flex items-center gap-3">
+          <button className={`action-button ${isDarkMode ? 'text-gray-300 hover:bg-gray-800' : 'hover:bg-gray-100'}`}>
+            <Link2 size={20} />
+          </button>
+          <button className={`action-button ${isDarkMode ? 'text-gray-300 hover:bg-gray-800' : 'hover:bg-gray-100'}`}>
             <Video size={20} />
           </button>
-          <button className="sidebar-button">
+          <button className={`action-button ${isDarkMode ? 'text-gray-300 hover:bg-gray-800' : 'hover:bg-gray-100'}`}>
             <Phone size={20} />
           </button>
-          <button className="sidebar-button">
+          <button className={`action-button ${isDarkMode ? 'text-gray-300 hover:bg-gray-800' : 'hover:bg-gray-100'}`}>
             <MoreVertical size={20} />
           </button>
         </div>
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4">
-        {messages.map((msg) => (
-          <div
-            key={msg.id}
-            className={`message-bubble ${
-              msg.sender === 'user' ? 'message-bubble-user' : 'message-bubble-ai'
-            }`}
-          >
-            <div className="p-3 shadow-sm animate-fade-in">
-              <p>{msg.content}</p>
-              <span className="message-time">
-                {msg.timestamp.toLocaleTimeString([], {
-                  hour: '2-digit',
-                  minute: '2-digit',
-                })}
-              </span>
-            </div>
-          </div>
-        ))}
-        {isTyping && (
-          <div className="message-bubble message-bubble-ai">
-            <div className="bg-white p-3 rounded-lg rounded-tl-none shadow-sm">
-              <div className="typing-indicator flex gap-2">
-                <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
-                <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
-                <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
+      <div className="flex-1 overflow-y-auto p-6">
+        <div className="max-w-3xl mx-auto space-y-6">
+          {messages.map((msg) => (
+            <div
+              key={msg.id}
+              className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
+            >
+              <div className={`max-w-[70%] ${msg.sender === 'user' ? 'order-2' : 'order-1'}`}>
+                <div className={`message-bubble rounded-2xl shadow-sm p-4 ${
+                  msg.sender === 'user'
+                    ? isDarkMode
+                      ? 'bg-green-600 text-white'
+                      : 'bg-green-500 text-white'
+                    : isDarkMode
+                    ? 'bg-gray-800 text-gray-100'
+                    : 'bg-white text-gray-900'
+                }`}>
+                  {msg.attachment && (
+                    <div className="mb-2">
+                      {msg.attachment.type === 'image' ? (
+                        <img 
+                          src={msg.attachment.url} 
+                          alt="attachment" 
+                          className="rounded-lg max-w-full h-auto"
+                        />
+                      ) : (
+                        <div className="flex items-center gap-2 p-2 rounded-lg bg-black/10">
+                          <Paperclip size={16} />
+                          <span className="text-sm">{msg.attachment.name}</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  <p className="text-base">{msg.content}</p>
+                  <span className={`text-xs mt-1 block ${
+                    msg.sender === 'user'
+                      ? 'text-green-100'
+                      : isDarkMode
+                      ? 'text-gray-400'
+                      : 'text-gray-500'
+                  }`}>
+                    {msg.timestamp.toLocaleTimeString([], {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })}
+                  </span>
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          ))}
+          {isTyping && (
+            <div className="flex justify-start">
+              <div className={`p-4 rounded-2xl shadow-sm ${
+                isDarkMode ? 'bg-gray-800' : 'bg-white'
+              }`}>
+                <div className="flex gap-2">
+                  <div className="w-2 h-2 rounded-full bg-green-500 animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                  <div className="w-2 h-2 rounded-full bg-green-500 animate-bounce" style={{ animationDelay: '200ms' }}></div>
+                  <div className="w-2 h-2 rounded-full bg-green-500 animate-bounce" style={{ animationDelay: '400ms' }}></div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
         <div ref={messagesEndRef} />
       </div>
 
       {/* Input area */}
-      <div className="bg-gray-100 p-4">
-        <div className="flex items-center gap-2">
-          <button className="sidebar-button">
-            <Smile size={20} />
-          </button>
-          <button className="sidebar-button">
-            <Image size={20} />
-          </button>
-          <input
-            ref={inputRef}
-            type="text"
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-            placeholder={`Message ${personality.name}...`}
-            className="chat-input"
-            autoFocus
-          />
-          <button
-            onClick={handleSend}
-            disabled={!message.trim()}
-            className="p-2 bg-green-500 hover:bg-green-600 rounded-full text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-green-500"
-          >
-            <Send size={20} />
-          </button>
+      <div className={`p-6 ${isDarkMode ? 'bg-gray-900' : 'bg-white bg-opacity-90 backdrop-blur-lg'}`}>
+        <div className="max-w-3xl mx-auto">
+          <div className="flex items-center gap-3">
+            <button 
+              className={`action-button ${isDarkMode ? 'text-gray-300 hover:bg-gray-800' : 'hover:bg-gray-100'}`}
+              onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+            >
+              <Smile size={20} />
+            </button>
+            <button 
+              className={`action-button ${isDarkMode ? 'text-gray-300 hover:bg-gray-800' : 'hover:bg-gray-100'}`}
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <Paperclip size={20} />
+            </button>
+            <input
+              type="file"
+              ref={fileInputRef}
+              className="hidden"
+              onChange={handleFileUpload}
+              accept="image/*,.pdf,.doc,.docx"
+            />
+            <div className="flex-1">
+              <input
+                ref={inputRef}
+                type="text"
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleSend()}
+                placeholder={`Message ${personality.name}...`}
+                className={`w-full px-4 py-3 rounded-full focus:outline-none focus:ring-2 focus:ring-green-500 transition-all ${
+                  isDarkMode 
+                    ? 'bg-gray-800 text-white placeholder-gray-400 border-gray-700' 
+                    : 'bg-gray-100 text-gray-900 placeholder-gray-500'
+                }`}
+                autoFocus
+              />
+            </div>
+            <button
+              onMouseDown={startRecording}
+              onMouseUp={stopRecording}
+              className={`action-button ${isDarkMode ? 'text-gray-300 hover:bg-gray-800' : 'hover:bg-gray-100'} ${
+                isRecording ? 'text-red-500' : ''
+              }`}
+            >
+              <Mic size={20} />
+            </button>
+            <button
+              onClick={handleSend}
+              disabled={!message.trim() && !selectedFile}
+              className={`p-3 rounded-full text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
+                isDarkMode
+                  ? 'bg-green-600 hover:bg-green-700 disabled:hover:bg-green-600'
+                  : 'bg-green-500 hover:bg-green-600 disabled:hover:bg-green-500'
+              }`}
+            >
+              <Send size={20} />
+            </button>
+          </div>
         </div>
       </div>
     </div>
