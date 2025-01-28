@@ -121,6 +121,7 @@ export default function ChatWindow({ personality }: ChatWindowProps) {
         },
       ]);
     }
+
   };
 
   if (!personality) {
